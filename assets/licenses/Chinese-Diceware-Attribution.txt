@@ -1,0 +1,11 @@
+Chinese word data adapted from cfbao/chinese-diceware by cfbao.
+Source: https://github.com/cfbao/chinese-diceware/blob/master/pinyin.wordlist
+Wordlists are distributed under Creative Commons Attribution 4.0 International:
+https://creativecommons.org/licenses/by/4.0/
+Full legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+Modifications by ForenHC contributors: extracted the Chinese-word column,
+deduplicated entries and converted Chinese words to toneless pinyin using
+the Rust pinyin crate. The derived lists retain CC BY 4.0 attribution.
+These are lexical resources, not an empirical common-password ranking.
+No GPL program code from this project is redistributed.

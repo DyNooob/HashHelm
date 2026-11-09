@@ -1,0 +1,24 @@
+* text=auto
+*.sh text eol=lf
+*.rs text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.png binary
+*.ico binary
+*.rgba binary
+*.zip binary
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.pptx binary
+
+# Preserve dictionary/rule bytes and published SHA-256 values.
+assets/wordlists/** -text -whitespace
+assets/rules/** -text -whitespace

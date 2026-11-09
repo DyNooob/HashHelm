@@ -1,0 +1,18 @@
+Session..........: telemetry-fixture
+Status...........: Aborted (Runtime)
+Hash.Mode........: 0 (MD5)
+Hash.Target......: d41d8cd98f00b204e9800998ecf8427e
+Time.Started.....: Mon Nov  9 20:35:15 2026 (3 secs)
+Time.Estimated...: Wed Nov 18 17:45:08 2026 (8 days, 21 hours; Runtime limit exceeded)
+Kernel.Feature...: Pure Kernel (password length 0-256 bytes)
+Guess.Mask.......: ?a?a?a?a?a?a?a?a [8]
+Guess.Queue......: 1/1 (100.00%)
+Speed.#01........:  8645.1 MH/s (89.47ms) @ Accel:496 Loops:1024 Thr:64 Vec:1
+Recovered........: 0/1 (0.00%) Digests (total), 0/1 (0.00%) Digests (new)
+Progress.........: 24964497408/6634204312890625 (0.01%)
+Rejected.........: 0/24964497408 (0.00%)
+Restore.Point....: 0/7737809375 (0.00%), Amplifier:857375
+Restore.Sub......: #01:32768/0
+Candidate.Engine.: Device Generator
+Candidates.#01...: ]?2erane -> .\]HV%^&
+Hardware.Mon.#01.: Temp: 73c Util:100% Core:2535MHz Mem:8000MHz Bus:8

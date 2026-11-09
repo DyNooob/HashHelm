@@ -1,0 +1,92 @@
+name: Native desktop builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    name: ${{ matrix.platform }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            platform: macos
+            arch: arm64
+          - runner: macos-15-intel
+            platform: macos
+            arch: x64
+          - runner: ubuntu-22.04
+            platform: linux
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      HASHHELM_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libclang-dev libgtk-3-dev libwebkit2gtk-4.1-dev xvfb dbus-x11
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup override set stable
+      - name: Validate host architecture
+        run: |
+          python3 -c 'import platform; expected="${{ matrix.arch }}"; actual={"aarch64":"arm64","arm64":"arm64","x86_64":"x64"}.get(platform.machine()); assert actual == expected, (actual, expected)'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Frontend tests
+        run: |
+          npm ci --prefix tests/browser --ignore-scripts --no-audit --no-fund
+          node scripts/ui-tests.cjs
+          node scripts/workflow-tests.mjs
+          node scripts/platform-ui-tests.mjs
+          python3 -m unittest discover -s tests -p 'test_packaging.py'
+      - name: Build pinned full Hashcat
+        run: bash scripts/build-hashcat.sh
+      - name: Rust checks
+        run: |
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --no-default-features --lib --locked
+      - name: Build and package
+        run: bash scripts/build-unix.sh
+      - name: Native GUI startup smoke
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.platform }}
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          if [ "${{ matrix.platform }}" = linux ]; then
+            dbus-run-session -- xvfb-run -a python3 scripts/native_startup.py
+          else
+            python3 scripts/native_startup.py
+          fi
+      - uses: actions/upload-artifact@v6
+        with:
+          name: HashHelm-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.tar.gz
+            dist/*.json
+            tests/artifacts/native-startup.json
+          if-no-files-found: error
+          retention-days: 14

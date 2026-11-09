@@ -1,0 +1,57 @@
+[
+  {
+    "file": "chinese-common-10000.txt",
+    "bytes": 83040,
+    "lines": 10000,
+    "unique": 10000,
+    "sha256": "35b1c1052d2af6c6aa069d5bc70e55cf51434141fdf3dc12d6a288792b60e21a",
+    "source": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Language-Specific/Chinese-common-password-list-top-10000.txt",
+    "license": "MIT",
+    "attribution": "SecLists / NihaoKangkang Chinese Common Password List",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "file": "chinese-common-100000.txt",
+    "bytes": 837869,
+    "lines": 100000,
+    "unique": 100000,
+    "sha256": "5acd0862c3b6efccc12f7f94f96ba5e45ab4d455d7e63b55c59a2510dfea2fae",
+    "source": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/Language-Specific/Chinese-common-password-list-top-100000.txt",
+    "license": "MIT",
+    "attribution": "SecLists / NihaoKangkang Chinese Common Password List",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "file": "chinese-pinyin.txt",
+    "bytes": 50798,
+    "lines": 7744,
+    "unique": 7744,
+    "sha256": "47f20c075f4f10ae705aa280a3627712b353a2dd5268b2df71692017bb355476",
+    "source": "https://github.com/cfbao/chinese-diceware/blob/master/pinyin.wordlist",
+    "license": "CC BY 4.0",
+    "attribution": "cfbao; derived words converted to toneless pinyin with Rust pinyin",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "file": "chinese-words.txt",
+    "bytes": 62328,
+    "lines": 7776,
+    "unique": 7776,
+    "sha256": "71c9cec15c31cdd867ee58ef74c7ccff745d7ffb5fb172aef1106b122fde3e18",
+    "source": "https://github.com/cfbao/chinese-diceware/blob/master/pinyin.wordlist",
+    "license": "CC BY 4.0",
+    "attribution": "cfbao; Chinese-word column extracted and deduplicated",
+    "retrieved": "2026-11-09"
+  },
+  {
+    "file": "common-10000.txt",
+    "bytes": 73026,
+    "lines": 10001,
+    "unique": 10001,
+    "sha256": "68782d6a4a19a4768d5f15dd66bd534e7a33055cc755411e33f16d18c50fdcce",
+    "source": "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/10k-most-common.txt",
+    "license": "MIT",
+    "attribution": "SecLists",
+    "retrieved": "2026-11-09"
+  }
+]

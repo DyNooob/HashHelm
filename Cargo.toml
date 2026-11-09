@@ -1,0 +1,48 @@
+[package]
+name = "hashhelm"
+version = "0.6.0"
+edition = "2024"
+default-run = "hashhelm"
+description = "A lightweight, cross-platform Hashcat GUI built with Rust for password recovery, CTFs, and digital forensics."
+license-file = "LICENSE"
+authors = ["DyNooob"]
+homepage = "https://www.foren.dev"
+repository = "https://github.com/DyNooob/HashHelm"
+readme = "README.md"
+
+[features]
+default = ["desktop"]
+desktop = ["dep:wry", "dep:tao", "dep:rfd"]
+
+[[bin]]
+name = "hashhelm"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[dependencies]
+wry = { version = "0.57", optional = true }
+tao = { version = "0.37", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = { version = "0.17", default-features = false, optional = true }
+cfb = "0.16"
+roxmltree = "0.21"
+base64 = "0.22"
+lopdf = { version = "0.38", default-features = false }
+pinyin = { version = "0.11", default-features = false, features = ["plain"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rfd = { version = "0.17", default-features = false, features = ["gtk3"], optional = true }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
