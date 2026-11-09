@@ -8,7 +8,7 @@ import zipfile
 ROOT=Path(__file__).resolve().parents[1]
 VERSION=tomllib.loads((ROOT/'Cargo.toml').read_text())['package']['version']
 DIRECTORIES=('src','assets','.github','tests/fixtures')
-FILES=('ui/index.html','ui/style.css','ui/core.js','ui/i18n.js','ui/app.js','Cargo.toml','Cargo.lock','build.rs','README.md','BUILDING.md','GUIDE.zh-CN.md','LICENSE','CREDITS.md','THIRD_PARTY.md','.gitattributes','tests/test_packaging.py','tests/browser/package.json','tests/browser/package-lock.json')
+FILES=('ui/index.html','ui/style.css','ui/core.js','ui/i18n.js','ui/app.js','Cargo.toml','Cargo.lock','build.rs','README.md','BUILDING.md','GUIDE.zh-CN.md','LICENSE','CREDITS.md','THIRD_PARTY.md','.gitattributes','.gitignore','tests/test_packaging.py','tests/browser/package.json','tests/browser/package-lock.json')
 SCRIPTS=('build-hashcat.sh','build-unix.sh','package_unix.py','package-source.py','native_startup.py','install-desktop.py','ui-tests.cjs','workflow-tests.mjs','platform-ui-tests.mjs','package.ps1','run-dev.ps1')
 
 def main():

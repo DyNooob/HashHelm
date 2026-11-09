@@ -35,6 +35,7 @@ GTK 支持的 Wayland 环境。系统 WebKitGTK 与 GPU 驱动不打入包内。
 5. 编译 GUI，验证 ELF/Mach-O、架构、Hashcat 版本、共享核心和完整模块集；复制内核、字典、规则、PCFG、Python/Feed/Bridge 等运行资源。
 6. 检查 GUI 静态增量和同格式压缩增量都在 10,000,000 字节以内。
 7. 启动原生窗口，等待前端完成 JavaScript 初始化并通过 IPC 回报就绪。
+8. 对包内引擎验证输出、取消、结果查询和进程清理；macOS 在引擎使用后再次执行完整签名校验。
 
 Artifact 包含 `.tar.gz`、体积/SHA256 报告及原生启动报告，保存 14 天。
 CI 初始化检查不能代替人工视觉验收，也不代表已经在真实 GPU 上验证性能。
@@ -109,6 +110,7 @@ python3 scripts/package_unix.py --engine-dir "$HASHCAT_SOURCE" --output dist/my-
 | Windows | 便携目录旁的 assets/hashcat | 便携目录内 `workspace` |
 
 macOS 不把可变数据写进 `.app`，避免资源只读和应用签名失效。
+引擎查询和未指定 `--cache-path` 的命令统一使用工作区的 `cache`；打包时不复制构建机缓存。
 Linux 在程序目录创建空的 `portable.flag` 后，可使用旁边的 `workspace`；目录必须可写。
 也可用绝对路径 `HASHHELM_DATA_DIR` 覆盖数据目录。
 

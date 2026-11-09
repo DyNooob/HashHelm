@@ -37,7 +37,13 @@ with tempfile.TemporaryDirectory() as temp:
             except subprocess.TimeoutExpired: child.kill(); child.wait(timeout=5)
         err.seek(0)
         stderr = err.read()
-report = {'platform':os_name, 'arch':arch, 'platformInfo':info, 'uiHandshake':initialized, 'stderr':stderr, 'limitations':['JS/IPC startup only; no visual or GPU-performance acceptance.']}
+# Exercise the packaged engine through the same process layer as the GUI.
+# Help, cancellation and result queries must leave the app seal intact too.
+engine = Path(info['engine'])
+subprocess.run([str(ROOT / 'target/release/runtime-check'), str(engine)], check=True, timeout=180)
+if os_name == 'macos':
+    subprocess.run(['codesign', '--verify', '--deep', '--strict', str(folder / 'HashHelm.app')], check=True)
+report = {'platform':os_name, 'arch':arch, 'platformInfo':info, 'uiHandshake':initialized, 'stderr':stderr, 'packagedRuntimeCheck':True, 'signatureVerifiedAfterEngineUse':os_name == 'macos', 'limitations':['JS/IPC and engine process checks; no visual or GPU-performance acceptance.']}
 output = ROOT / 'tests/artifacts/native-startup.json'
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps(report, indent=2) + '\n')

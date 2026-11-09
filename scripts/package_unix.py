@@ -15,7 +15,7 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
-RUNTIME_DIRS = ('OpenCL', 'modules', 'bridges', 'feeds', 'charsets', 'docs', 'extra', 'masks', 'rules', 'tables', 'tunings', 'pcfg', 'Python', 'Rust', 'tools', 'cache')
+RUNTIME_DIRS = ('OpenCL', 'modules', 'bridges', 'feeds', 'charsets', 'docs', 'extra', 'masks', 'rules', 'tables', 'tunings', 'pcfg', 'Python', 'Rust', 'tools')
 DOCS = ('README.md', 'GUIDE.zh-CN.md', 'BUILDING.md', 'THIRD_PARTY.md', 'LICENSE', 'CREDITS.md')
 IGNORED = {'.git', 'obj', 'target', '__pycache__', 'workspace', 'webview'}
 
@@ -52,7 +52,10 @@ def validate_engine(folder, os_name, arch):
     if len(native_modules) < 500: raise ValueError('The full module set was not built')
     if not any(p.suffix in ('.so', '.dylib') for p in (folder / 'bridges').glob('bridge_rust_generic_hash.*')) or not any(p.suffix in ('.so', '.dylib') for p in (folder / 'bridges/subs').glob('*generic_hash*')):
         raise ValueError('Missing the Rust bridge or its default plugin; install libclang and rebuild the full engine')
-    version = subprocess.run([str(binary), '--version'], cwd=folder, capture_output=True, text=True, timeout=20, check=True).stdout.strip()
+    # Even --version writes a module cache. Never mutate a signed app or copy
+    # a cache whose module timestamps and signatures belong to the build host.
+    with tempfile.TemporaryDirectory() as cache:
+        version = subprocess.run([str(binary), '--cache-path', cache, '--version'], cwd=folder, capture_output=True, text=True, timeout=120, check=True).stdout.strip()
     if version != 'v8.0.0': raise ValueError(f'Expected Hashcat v8.0.0, found {version}')
     return binary
 
@@ -130,14 +133,15 @@ def main():
     for doc in DOCS: shutil.copy2(ROOT / doc, resources / doc)
     engine = resources / 'hashcat'
     copy_engine(source, engine)
+    validate_engine(engine, os_name, arch)
     if os_name == 'macos':
         for file in engine.rglob('*'):
             if file.is_file() and (file.suffix in ('.dylib', '.so') or file.name in ('hashcat', 'hashcat.bin')):
                 subprocess.run(['codesign', '--force', '--sign', '-', str(file)], check=True, capture_output=True)
         subprocess.run(['codesign', '--force', '--sign', '-', str(stage / 'HashHelm.app')], check=True, capture_output=True)
+        subprocess.run(['codesign', '--verify', '--deep', '--strict', str(stage / 'HashHelm.app')], check=True, capture_output=True)
     metadata = json.loads(subprocess.run([str(executable), '--hashhelm-platform-info'], capture_output=True, text=True, check=True, timeout=20).stdout)
     if metadata['platform'] != os_name or metadata['version'] != VERSION: raise ValueError('Packaged host failed its platform check')
-    validate_engine(engine, os_name, arch)
     engine_bytes = sum(p.stat().st_size for p in engine.rglob('*') if p.is_file())
     total = sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())
     if total - engine_bytes > 10_000_000: raise ValueError('Static UI overhead exceeds 10 MB')

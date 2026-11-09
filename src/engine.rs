@@ -20,6 +20,17 @@ pub fn engine_path(root: &Path) -> PathBuf {
     crate::platform::engine_path(root)
 }
 
+fn cache_args(args: Vec<String>, data: &Path) -> Result<Vec<String>, String> {
+    if args.iter().any(|a| a == "--cache-path" || a.starts_with("--cache-path=")) {
+        return Ok(args);
+    }
+    let cache = data.join("cache");
+    std::fs::create_dir_all(&cache).map_err(|e| e.to_string())?;
+    let mut managed = vec!["--cache-path".to_owned(), cache.to_string_lossy().into_owned()];
+    managed.extend(args);
+    Ok(managed)
+}
+
 fn prepare_child(command: &mut Command) {
     #[cfg(windows)]
     command.creation_flags(0x08000000);
@@ -136,8 +147,10 @@ pub fn results(exe: &Path, target: &Path, mode: u32, potfile: &Path) -> Result<V
         return Ok(vec![]);
     }
     let mut command = Command::new(exe);
+    let args = cache_args(Vec::new(), potfile.parent().unwrap_or(Path::new(".")))?;
     command
         .current_dir(crate::platform::engine_workdir(exe))
+        .args(args)
         .args([
             "-m",
             &mode.to_string(),
@@ -176,6 +189,13 @@ pub fn run(
     emit: impl Fn(Value),
 ) {
     let start = Instant::now();
+    let args = match cache_args(args, &data) {
+        Ok(args) => args,
+        Err(message) => {
+            emit(json!({"type":"error","message":format!("无法创建引擎缓存：{message}")}));
+            return;
+        }
+    };
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -323,6 +343,19 @@ pub fn run(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn engine_cache_defaults_to_workspace_and_preserves_explicit_paths() {
+        let data = root().join("tests/artifacts/cache-default");
+        let input = vec!["-hh".to_owned(), "$(whoami)".to_owned()];
+        let args = cache_args(input.clone(), &data).unwrap();
+        assert_eq!(&args[..2], &["--cache-path", data.join("cache").to_str().unwrap()]);
+        assert_eq!(&args[2..], input);
+        assert!(data.join("cache").is_dir());
+        for explicit in [vec!["--cache-path".to_owned(), "/custom cache".to_owned()], vec!["--cache-path=/custom cache".to_owned()]] {
+            assert_eq!(cache_args(explicit.clone(), &data).unwrap(), explicit);
+        }
+    }
+
     #[test]
     fn logs_are_bounded_and_confined_to_workspace() {
         let data = root().join("tests/artifacts/log-reader");

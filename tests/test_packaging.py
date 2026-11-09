@@ -56,8 +56,10 @@ class PackagingTests(unittest.TestCase):
             (source/'bridges/target').mkdir();(source/'bridges/target/scratch.o').write_text('object')
             (source/'hashcat').write_bytes(elf());(source/'libhashcat.so.8').write_bytes(elf());(source/'hashcat.exe').write_bytes(b'MZ')
             (source/'hashcat.hcstat2').write_bytes(b'data')
+            (source/'cache').mkdir();(source/'cache/module_options.so.cache').write_text('build-host cache')
             pack.copy_engine(source,target)
             for name in pack.RUNTIME_DIRS:self.assertTrue((target/name/'keep.txt').is_file())
             self.assertTrue((target/'libhashcat.so.8').is_file());self.assertFalse((target/'hashcat.exe').exists());self.assertFalse((target/'bridges/target').exists())
+            self.assertFalse((target/'cache').exists())
 
 if __name__=='__main__':unittest.main()
