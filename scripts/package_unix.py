@@ -117,7 +117,7 @@ def main():
         executable = contents / 'MacOS/HashHelm'
         resources.mkdir(parents=True)
         executable.parent.mkdir()
-        info = {'CFBundleName': 'HashHelm', 'CFBundleDisplayName': 'HashHelm', 'CFBundleIdentifier': 'com.digiforensics.hashhelm', 'CFBundleExecutable': 'HashHelm', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': VERSION, 'CFBundleVersion': VERSION, 'CFBundleIconFile': 'DigiForensics.icns', 'LSMinimumSystemVersion': '14.0', 'NSHighResolutionCapable': True, 'NSHumanReadableCopyright': 'Copyright (c) 2026 DyNooob · HashHelm Attribution License v1.0'}
+        info = {'CFBundleName': 'HashHelm', 'CFBundleDisplayName': 'HashHelm', 'CFBundleIdentifier': 'com.digiforensics.hashhelm', 'CFBundleExecutable': 'HashHelm', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': VERSION, 'CFBundleVersion': VERSION, 'CFBundleIconFile': 'DigiForensics.icns', 'LSMinimumSystemVersion': '15.0', 'NSHighResolutionCapable': True, 'NSHumanReadableCopyright': 'Copyright (c) 2026 DyNooob · HashHelm Attribution License v1.0'}
         (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
         mac_icon(resources / 'DigiForensics.icns')
     else:

@@ -10,8 +10,8 @@ macOS/Linux 原生编译、GUI 启动、看门狗及 GPU 性能必须在对应�
 
 | 平台 | 架构 | CI Runner | 输出 |
 | --- | --- | --- | --- |
-| macOS 14+ | Apple Silicon arm64 | macos-15 | 含 HashHelm.app 的 tar.gz |
-| macOS 14+ | Intel x64 | macos-15-intel | 含 HashHelm.app 的 tar.gz |
+| macOS 15+ | Apple Silicon arm64 | macos-15 | 含 HashHelm.app 的 tar.gz |
+| macOS 15+ | Intel x64 | macos-15-intel | 含 HashHelm.app 的 tar.gz |
 | Linux | x64，glibc | ubuntu-22.04 | 便携目录 tar.gz |
 | Linux | ARM64，glibc | ubuntu-24.04-arm | 便携目录 tar.gz |
 
@@ -54,6 +54,7 @@ bash scripts/build-unix.sh --with-hashcat
 的原生架构，Apple Silicon 不依赖 Rosetta，Intel 也独立构建。
 最终目录为 `dist/HashHelm-0.6.0-macos-arm64` 或 `...-macos-x64`。
 
+包内 Hashcat 8 的 Mach-O 最低系统版本为 macOS 15，应用包声明相同要求。
 macOS 包生成 DigiForensics ICNS 图标，并使用 ad-hoc 开发签名。
 **没有 Developer ID 发行签名，也没有 Apple 公证。** 对外正式分发需要你自己的 Apple
 Developer 证书和公证流程；本轮不伪造签名、不关闭 Gatekeeper。

@@ -27,7 +27,7 @@ HashHelm 不经过 CMD、PowerShell 或 POSIX shell 执行用户参数。可复�
 | 平台 | 图形后端 | 当前交付方式 |
 | --- | --- | --- |
 | Windows x64 | 系统 WebView2 Runtime | 便携目录，运行 HashHelm.exe |
-| macOS Apple Silicon / Intel | 系统 WKWebView | 原生 .app 构建配置 |
+| macOS 15+ Apple Silicon / Intel | 系统 WKWebView | 原生 .app 构建配置 |
 | Linux x64 / ARM64 | GTK3 / WebKitGTK 4.1 | 原生便携构建配置 |
 
 Windows 已进行本机核心和前端验证。macOS/Linux 原生编译及启动结果以仓库 Actions 为准；CI 启动检查不能代替实际 GPU 和人工视觉验收。
