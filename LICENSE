@@ -1,0 +1,86 @@
+# HashHelm License
+
+HashHelm Attribution License — Version 1.0
+
+Copyright (c) 2026 DyNooob.
+All rights reserved except as expressly granted by this license.
+
+Original Author: DyNooob
+Official Website: https://www.foren.dev
+Original Project: https://github.com/DyNooob/HashHelm
+
+## 1. Scope and Grant of Permission / 适用范围与授权
+
+This license applies to the original HashHelm software and accompanying materials for which the copyright holder has authority to grant rights (the "Software").
+
+Subject to the conditions below, permission is granted, free of charge, to use, copy, modify, merge, distribute, sublicense, and sell copies of the Software, including modified versions in source or binary form, and to permit recipients to do the same.
+
+本许可证适用于版权人有权授权的 HashHelm 原始软件及随附材料（以下称“本软件”）。在遵守下列条件的前提下，任何获得本软件副本的个人或组织，均可免费使用、复制、修改、合并、分发、再许可及销售本软件，包括以源代码或二进制形式发布修改版本，并允许接收者行使相同权利。
+
+## 2. Required Attribution / 必须保留的署名
+
+All redistributed copies and derivative works containing substantial portions of the original Software must retain the following attribution, with the author's name and both URLs intact:
+
+Originally developed by DyNooob.
+Official Website: https://www.foren.dev
+Original Project: https://github.com/DyNooob/HashHelm
+
+For graphical applications, this attribution must be clearly accessible in an About, Credits, or equivalent information section. A permanent notice on the main screen is not required. Display the URLs in full and make them usable as external links where the application supports external links and the destinations remain available. Redistributors are not responsible for maintaining the author's website or repository.
+
+For distributions without a graphical interface, include the attribution in accompanying documentation or an accessible credits file.
+
+Do not remove, deliberately conceal, falsify, or alter the required attribution in a way that misrepresents the original authorship. Equivalent translations may accompany, but must not replace, the author's name and URLs.
+
+所有包含本软件原始代码实质性部分的再分发副本和衍生作品，均须保留上述署名，完整保留原作者名称及两个网址。
+
+对于图形化应用程序，署名须在“关于”“致谢”或同等信息页面中清晰可见；不要求在主界面永久显示。网址须完整展示，在应用程序支持外部链接且目标地址可用时，应提供可用的外部链接。再分发者不承担维护原作者网站或仓库的义务。
+
+对于不具有图形界面的分发版本，须在随附文档或可访问的署名文件中保留署名。
+
+不得删除、故意隐藏、伪造或以误导原始作者身份的方式修改必须保留的署名。可以附加等义翻译，但不得用翻译替换作者名称和网址。
+
+## 3. Modifications, Rebranding, and Commercial Use / 修改、更换品牌与商业使用
+
+You may modify, extend, rebrand, redistribute, and commercially sell the Software and derivative works. Modified versions may be closed-source; this license does not require disclosure of modifications.
+
+You may add your own names, trademarks, copyright notices, and license terms for your own contributions. Any redistribution or sublicensing must preserve the rights and conditions of this license for the original Software, including its required attribution and notices. Do not falsely claim exclusive original authorship of the original HashHelm code.
+
+允许修改、扩展、更换品牌、再分发及商业销售本软件或其衍生作品。修改版本可以闭源，本许可证不要求公开修改后的源代码。
+
+允许为自己的贡献添加名称、商标、版权声明和许可条款。但再分发或再许可不得取消本许可证就原始软件规定的权利和条件，包括必须保留的署名及声明；不得虚假宣称 HashHelm 原始代码完全由修改者独立原创。
+
+## 4. Copyright and License Notices / 版权与许可声明
+
+Include this license and the applicable original copyright notices with all redistributed copies or substantial portions of the Software, in source or binary form. An accompanying LICENSE file or equivalent accessible legal-notices file is sufficient.
+
+以源代码或二进制形式再分发本软件或其实质性部分时，必须附带本许可证及适用的原始版权声明。可通过随附 LICENSE 文件或同等可访问的法律声明文件履行此义务。
+
+## 5. No Endorsement / 不构成官方认可
+
+Except for the attribution required by this license, use of the author's name, website, or original project identity to imply endorsement, sponsorship, certification, or affiliation requires the author's prior written permission. Required attribution alone does not imply such a relationship.
+
+除履行本许可证规定的署名义务外，未经原作者事先书面许可，不得使用原作者名称、官方网站或原项目身份暗示官方认可、赞助、认证或合作关系。保留署名本身不代表存在上述关系。
+
+## 6. Third-Party Components / 第三方组件
+
+This license does not replace or modify the licenses of Hashcat, third-party libraries, dictionaries, rules, sample files, or other independently licensed components. Those components remain subject to their respective licenses, including any required notices and attribution. Refer to THIRD_PARTY.md and the component-specific license files.
+
+本许可证不替代或修改 Hashcat、第三方库、字典、规则、示例文件及其他独立授权组件的许可协议。上述组件仍遵循各自的许可证，包括适用的声明和署名要求。详情参见 THIRD_PARTY.md 及相应组件的许可文件。
+
+## 7. Disclaimer and Limitation of Liability / 免责声明与责任限制
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR ITS USE, MODIFICATION, OR DISTRIBUTION.
+
+本软件按“现状”提供，不作任何明示或默示保证，包括但不限于适销性、特定用途适用性及不侵权保证。
+
+在适用法律允许的最大范围内，作者及版权持有人不对因本软件或其使用、修改、分发而产生或与之有关的任何索赔、损害或其他责任承担赔偿责任，无论该责任基于合同、侵权或其他法律依据。
+
+---
+
+HashHelm Attribution License v1.0
+Copyright (c) 2026 DyNooob
+
+Official Website: https://www.foren.dev
+Original Project: https://github.com/DyNooob/HashHelm
