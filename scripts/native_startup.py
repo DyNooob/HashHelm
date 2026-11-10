@@ -66,6 +66,10 @@ with tempfile.TemporaryDirectory(prefix='native-startup-',dir=scratch) as temp:
             try:
                 if profile.exists():shutil.rmtree(profile)
                 break
+            except FileNotFoundError:
+                # WebView2 may remove its own lockfile while rmtree enumerates it.
+                # Retry the remaining tree, or finish if the whole profile is gone.
+                if not profile.exists():break
             except OSError as error:
                 if getattr(error,'winerror',None) not in (5,32,145) or attempt==49:raise
                 time.sleep(0.1)
