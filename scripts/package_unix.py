@@ -15,8 +15,10 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
+BUILD = int(os.environ.get('HASHHELM_BUILD_NUMBER', '1'))
+if not 1 <= BUILD <= 2147483647: raise ValueError('Invalid HASHHELM_BUILD_NUMBER')
 RUNTIME_DIRS = ('OpenCL', 'modules', 'bridges', 'feeds', 'charsets', 'docs', 'extra', 'masks', 'rules', 'tables', 'tunings', 'pcfg', 'Python', 'Rust', 'tools')
-DOCS = ('README.md', 'GUIDE.zh-CN.md', 'BUILDING.md', 'THIRD_PARTY.md', 'LICENSE', 'CREDITS.md')
+DOCS = ('README.md', 'GUIDE.zh-CN.md', 'BUILDING.md', 'THIRD_PARTY.md','FORMAT-SUPPORT.md','SECURITY-NOTES.md', 'DESIGN.md', 'LICENSE', 'CREDITS.md')
 IGNORED = {'.git', 'obj', 'target', '__pycache__', 'workspace', 'webview'}
 
 
@@ -52,8 +54,7 @@ def validate_engine(folder, os_name, arch):
     if len(native_modules) < 500: raise ValueError('The full module set was not built')
     if not any(p.suffix in ('.so', '.dylib') for p in (folder / 'bridges').glob('bridge_rust_generic_hash.*')) or not any(p.suffix in ('.so', '.dylib') for p in (folder / 'bridges/subs').glob('*generic_hash*')):
         raise ValueError('Missing the Rust bridge or its default plugin; install libclang and rebuild the full engine')
-    # Even --version writes a module cache. Never mutate a signed app or copy
-    # a cache whose module timestamps and signatures belong to the build host.
+    # Keep generated caches outside the source runtime and the signed application.
     with tempfile.TemporaryDirectory() as cache:
         version = subprocess.run([str(binary), '--cache-path', cache, '--version'], cwd=folder, capture_output=True, text=True, timeout=120, check=True).stdout.strip()
     if version != 'v8.0.0': raise ValueError(f'Expected Hashcat v8.0.0, found {version}')
@@ -117,7 +118,7 @@ def main():
         executable = contents / 'MacOS/HashHelm'
         resources.mkdir(parents=True)
         executable.parent.mkdir()
-        info = {'CFBundleName': 'HashHelm', 'CFBundleDisplayName': 'HashHelm', 'CFBundleIdentifier': 'com.digiforensics.hashhelm', 'CFBundleExecutable': 'HashHelm', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': VERSION, 'CFBundleVersion': VERSION, 'CFBundleIconFile': 'DigiForensics.icns', 'LSMinimumSystemVersion': '15.0', 'NSHighResolutionCapable': True, 'NSHumanReadableCopyright': 'Copyright (c) 2026 DyNooob · HashHelm Attribution License v1.0'}
+        info = {'CFBundleName': 'HashHelm', 'CFBundleDisplayName': 'HashHelm', 'CFBundleIdentifier': 'com.digiforensics.hashhelm', 'CFBundleExecutable': 'HashHelm', 'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': VERSION, 'CFBundleVersion': str(BUILD), 'CFBundleIconFile': 'DigiForensics.icns', 'LSMinimumSystemVersion': '15.0', 'NSHighResolutionCapable': True, 'NSHumanReadableCopyright': 'Copyright (c) 2026 DyNooob · HashHelm Attribution License v1.0'}
         (contents / 'Info.plist').write_bytes(plistlib.dumps(info))
         mac_icon(resources / 'DigiForensics.icns')
     else:
@@ -141,18 +142,18 @@ def main():
         subprocess.run(['codesign', '--force', '--sign', '-', str(stage / 'HashHelm.app')], check=True, capture_output=True)
         subprocess.run(['codesign', '--verify', '--deep', '--strict', str(stage / 'HashHelm.app')], check=True, capture_output=True)
     metadata = json.loads(subprocess.run([str(executable), '--hashhelm-platform-info'], capture_output=True, text=True, check=True, timeout=20).stdout)
-    if metadata['platform'] != os_name or metadata['version'] != VERSION: raise ValueError('Packaged host failed its platform check')
+    if metadata['platform'] != os_name or metadata['version'] != VERSION or metadata['build'] != BUILD: raise ValueError('Packaged host failed its platform check')
     engine_bytes = sum(p.stat().st_size for p in engine.rglob('*') if p.is_file())
     total = sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())
     if total - engine_bytes > 10_000_000: raise ValueError('Static UI overhead exceeds 10 MB')
-    archive = args.output / f'{name}.tar.gz'
+    archive = args.output / f'HashHelm-{VERSION}-build{BUILD}-{os_name}-{arch}.tar.gz'
     with tarfile.open(archive, 'w:gz', compresslevel=9) as tar: add_tree(tar, stage, name)
     with tempfile.TemporaryDirectory(dir=args.output) as temp:
         baseline = Path(temp) / 'engine.tar.gz'
         with tarfile.open(baseline, 'w:gz', compresslevel=9) as tar: add_tree(tar, engine, f'{name}/hashcat')
         overhead = archive.stat().st_size - baseline.stat().st_size
         if overhead > 10_000_000: raise ValueError('Compressed UI overhead exceeds 10 MB')
-    report = {'version': VERSION, 'platform': os_name, 'arch': arch, 'archiveBytes': archive.stat().st_size, 'engineBytes': engine_bytes, 'staticOverheadBytes': total - engine_bytes, 'archiveOverheadBytes': overhead, 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'signed': 'ad-hoc development signature; not notarized' if os_name == 'macos' else False}
+    report = {'version': VERSION, 'build': BUILD, 'platform': os_name, 'arch': arch, 'archiveBytes': archive.stat().st_size, 'engineBytes': engine_bytes, 'staticOverheadBytes': total - engine_bytes, 'archiveOverheadBytes': overhead, 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'signed': 'ad-hoc development signature; not notarized' if os_name == 'macos' else False}
     (args.output / f'{name}.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
 

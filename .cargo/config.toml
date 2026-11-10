@@ -1,0 +1,4 @@
+# Keep the portable Windows application independent of the VC++ redistributable.
+# This also selects /MT for the statically built UnRAR C++ core.
+[target.'cfg(all(target_os = "windows", target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]

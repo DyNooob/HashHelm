@@ -1,6 +1,21 @@
 use std::{env, fs, path::PathBuf, process::Command};
 fn main() {
+    println!("cargo:rerun-if-env-changed=HASHHELM_BUILD_NUMBER");
+    let build = env::var("HASHHELM_BUILD_NUMBER").unwrap_or_else(|_| "1".into());
+    let build: u32 = build
+        .parse()
+        .expect("HASHHELM_BUILD_NUMBER must be an integer");
+    assert!(
+        (1..=i32::MAX as u32).contains(&build),
+        "Invalid build number"
+    );
+    println!("cargo:rustc-env=HASHHELM_BUILD_NUMBER={build}");
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+        // UnRAR uses the Windows registry and CryptoAPI, including in headless tools.
+        println!("cargo:rustc-link-lib=advapi32");
+    }
     println!("cargo:rerun-if-changed=assets/branding/digiforensics.ico");
+    println!("cargo:rerun-if-changed=assets/branding/windows.manifest");
     if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows")
         || env::var_os("CARGO_FEATURE_DESKTOP").is_none()
     {
@@ -27,15 +42,29 @@ fn main() {
     let res = out.join("hashhelm.res");
     let script = out.join("hashhelm.rc");
     let version = env::var("CARGO_PKG_VERSION").unwrap();
-    let mut numbers = version.split('.').take(3).map(|s|s.parse::<u16>().unwrap_or(0)).collect::<Vec<_>>();
-    numbers.resize(4,0);
-    let numeric_version = numbers.iter().map(u16::to_string).collect::<Vec<_>>().join(",");
+    let mut numbers = version
+        .split('.')
+        .take(3)
+        .map(|s| s.parse::<u16>().unwrap_or(0))
+        .collect::<Vec<_>>();
+    numbers.resize(4, 0);
+    let numeric_version = numbers
+        .iter()
+        .map(u16::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
     let icon = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("assets/branding/digiforensics.ico");
+    let manifest = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("assets/branding/windows.manifest")
+        .display()
+        .to_string()
+        .replace('\\', "/");
     fs::write(
         &script,
         format!(
             r#"1 ICON "{}"
+1 24 "{manifest}"
 1 VERSIONINFO
 FILEVERSION {numeric_version}
 PRODUCTVERSION {numeric_version}

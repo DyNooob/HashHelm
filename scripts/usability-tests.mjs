@@ -1,0 +1,36 @@
+import {Window} from '../tests/browser/node_modules/happy-dom/lib/index.js';
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const w=new Window({url:'https://hashhelm.test'}),messages=[];
+w.ipc={postMessage:s=>messages.push(JSON.parse(s))};w.HTMLElement.prototype.scrollIntoView=function(){};w.scrollTo=()=>{};w.confirm=()=>true;w.TextDecoder=TextDecoder;
+w.document.write(fs.readFileSync('ui/index.html','utf8').replace(/<script>[\s\S]*?<\/script>/,''));
+for(const file of ['core','i18n','workbench','updates','tools','app'])w.eval(fs.readFileSync('ui/'+file+'.js','utf8'));
+const $=id=>w.document.getElementById(id),click=id=>$(id).click(),last=op=>messages.filter(m=>m.op===op).at(-1),input=(id,value)=>{$(id).value=value;$(id).dispatchEvent(new w.Event('input',{bubbles:true}));};
+const change=(id,value)=>{$(id).value=value;$(id).dispatchEvent(new w.Event('change',{bubbles:true}));};
+const M=w.MaskTools;const binary=w.HC.recovered('ff2020202850494d3d3329',{pim_start:1,pim_stop:5});assert.equal(binary.value,null);assert.equal(binary.hex,'ff');assert.equal(binary.pim,3);assert.equal(w.HC.recovered('6162632020202850494d3d3329',null).value,'abc   (PIM=3)');
+assert.equal(M.compose(M.infer('Jenny2000!')).mask,'?u?l?l?l?l?d?d?d?d!');assert.equal(M.compose(M.infer('?abc')).mask,'???l?l?l');
+assert.equal(M.compose(M.infer('王2026?')).mask,'王?d?d?d?d??');assert.throws(()=>M.infer('x\n'));
+const multi=M.parse('# comment\n?l?u,?1?1\nCTF\\,?d\n x ');assert.equal(multi[0].customCharset,'?l?u');assert.equal(multi[1].mask,'CTF,?d');assert.equal(multi[2].mask,' x ');
+assert.throws(()=>M.parse(Array(102).fill('?d').join('\n')));assert.ok(M.library.length>=80);
+w.receive({type:'init',version:'0.11.0',build:1,platform:'windows',arch:'x86_64',engine:'D:/app/hashcat/hashcat.exe',engineExists:true,data:'D:/app/workspace',resources:'D:/app',config:null,dictionaries:[]});
+let hit=null;w.document.elementFromPoint=()=>hit;
+function drop(field,paths,kinds={}){hit=field==='target'?$('pickTarget'):$(field).closest('[data-drop-field]');w.receive({type:'file_drag',phase:'drop',x:10,y:10,count:paths.length,items:paths.map(path=>({path,isFile:kinds.folder?false:true,isDirectory:!!kinds.folder}))});}
+click('homeRecover');drop('target',['D:/case/target.zip']);let imp=last('import');assert.equal(imp.path,'D:/case/target.zip');
+w.receive({type:'imported',id:imp.id,source:imp.path,hashPath:'D:/case/target.hash',mode:17200,format:'ZIP',members:[]});click('wizardNext');
+w.document.querySelector('[data-kind=known]').click();input('knownCandidates','preserved candidate');drop('wordlist',['D:/case/my words.txt']);assert.equal($('knownSource').value,'dictionary');assert.equal($('knownCandidates').value,'preserved candidate');assert.equal($('wordlist').value,'D:/case/my words.txt');
+change('planBreadth','only');click('wizardNext');const calls=messages.filter(m=>m.op==='candidates');assert.equal(calls.length,0,'Dropped dictionary must take precedence over retained candidates');assert.ok($('preview').textContent.includes('my words.txt'));
+change('taskView','workspace');assert.equal($('step-file').classList.contains('hidden'),false);assert.equal($('step-clues').classList.contains('hidden'),false);assert.equal(last('save').config.features.interface.taskView,'workspace');
+input('wordlist','D:/new.txt');assert.equal($('planDirty').classList.contains('hidden'),false);assert.equal($('enqueuePlan').disabled,true);click('wizardNext');assert.equal(messages.filter(m=>m.op==='queue_submit').length,0,'Rebuilding cannot execute');assert.ok($('preview').textContent.includes('D:/new.txt'));
+w.document.querySelector('[data-open-masks=mask]').click();assert.equal($('maskDialog').open,true);w.document.querySelector('[data-mask-tab=generate]').click();input('maskExample','Jenny2000!');assert.equal($('maskToolPreview').textContent,'?u?l?l?l?l?d?d?d?d!');assert.equal($('maskPositions').children.length,10);
+for(const label of [...$('maskPositions').children].slice(0,5)){const select=label.querySelector('select');select.value='fixed';select.dispatchEvent(new w.Event('change'));}
+assert.equal($('maskToolPreview').textContent,'Jenny?d?d?d?d!');click('applyMaskTool');assert.equal($('mask').value,'Jenny?d?d?d?d!');assert.equal($('manualMask').checked,true);assert.equal($('planBreadth').value,'only');assert.ok($('searchScope').textContent.includes('10,000'));
+input('maskList','?d?d\n?l?l');click('wizardNext');assert.equal($('attackPlan').children.length,2);assert.ok($('preview').textContent.includes('?d?d'));assert.ok($('preview').textContent.includes('?l?l'));
+const beforeCancel=$('preview').textContent,beforeMasks=$('maskList').value;click('appendStage');input('maskList','?s');click('cancelAppend');assert.equal($('preview').textContent,beforeCancel);assert.equal($('maskList').value,beforeMasks);assert.equal($('planDirty').classList.contains('hidden'),true);
+drop('maskList',['D:/masks.hcmask']);const request=last('mask_file');w.receive({type:'mask_file',id:request.id,text:'?d?d?d\n?u?l?l'});assert.equal($('maskList').value,'?d?d?d\n?u?l?l');
+click('findSettings');input('settingSearch','kernelThreads');assert.equal($('settingResults').children.length,1);$('settingSearch').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));assert.equal(w.document.activeElement.id,'kernelThreads');assert.equal($('kernelThreads').closest('details').open,true);
+drop('target',['D:/case/a.hc']);imp=last('import');assert.equal(imp.container.prf,'sha512');assert.equal(imp.container.bits,512);assert.equal($('sourceType').value,'veracrypt');
+const container={spec:{prf:'auto',bits:512,header:'primary',pim_start:1,pim_stop:2,keyfiles:['D:/key.bin']},offset:0};
+w.receive({type:'imported',id:imp.id,source:imp.path,hashPath:'D:/case/vc.hash',mode:29421,format:'VeraCrypt · PBKDF2 卷头',container,modes:[{mode:29421,label:'SHA512 / XTS 512'},{mode:29451,label:'SHA256 / XTS 512'}],members:[]});
+w.document.querySelector('[data-kind=pattern]').click();input('maskList','');$('manualMask').checked=true;input('mask','?d?d');click('wizardNext');assert.equal($('attackPlan').children.length,2);assert.ok($('preview').textContent.includes('29421'));assert.ok($('preview').textContent.includes('29451'));assert.ok($('preview').textContent.includes('--veracrypt-pim-start'));assert.ok($('preview').textContent.includes('D:/key.bin'));
+w.I18n.setPreferences({language:'en',theme:'dark'},true);w.I18n.apply();assert.equal($('taskView').selectedOptions[0].textContent,'Single page');assert.equal($('findSettings').textContent,'Find settings');
+console.log('Usability: native-drop routing, dictionary priority without input loss, shared one-page fields, stale-plan guards, example positions, mask batches, settings jumps and VeraCrypt mode/PIM/keyfile command integration passed.');
+await w.happyDOM.close();

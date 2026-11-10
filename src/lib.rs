@@ -1,4 +1,14 @@
+pub mod app_log;
+pub mod containers;
+pub mod diagnostics;
 pub mod engine;
 pub mod import;
 pub mod platform;
+pub mod preflight;
 pub mod profile;
+pub mod scheduler;
+pub mod sessions;
+pub mod settings;
+pub mod startup;
+pub mod updater;
+pub mod verification;

@@ -6,7 +6,7 @@ for(const platform of ['macos','linux']){
  const w=new Window({url:'https://hashhelm.test'}),messages=[];
  w.ipc={postMessage:s=>messages.push(JSON.parse(s))};w.HTMLElement.prototype.scrollIntoView=function(){};w.scrollTo=()=>{};w.confirm=()=>true;w.TextDecoder=TextDecoder;
  w.document.write(fs.readFileSync('ui/index.html','utf8').replace(/<script>[\s\S]*?<\/script>/,''));
- for(const file of ['core','i18n','app'])w.eval(fs.readFileSync('ui/'+file+'.js','utf8'));
+ for(const file of ['core','i18n','workbench','updates','tools','app'])w.eval(fs.readFileSync('ui/'+file+'.js','utf8'));
  const $=id=>w.document.getElementById(id),last=op=>messages.filter(m=>m.op===op).at(-1);
  const resources=platform==='macos'?'/Applications/HashHelm.app/Contents/Resources':'/opt/HashHelm';
  const data=platform==='macos'?'/Users/Jenny/Library/Application Support/DigiForensics/HashHelm':'/home/jenny/.local/share/digiforensics/hashhelm';
@@ -15,10 +15,10 @@ for(const platform of ['macos','linux']){
  w.receive({type:'demo',target:data+'/demo.hash',wordlist:data+'/demo.dict'});
  w.document.querySelector('[data-kind=none]').click();$('wizardNext').click();
  assert.ok($('preview').textContent.includes("'"+engine+"'"));assert.ok(!$('preview').textContent.includes("& '"));assert.ok($('preview').textContent.includes(resources+'/assets/rules/light.rule'));
- $('wizardNext').click();assert.equal(last('run').engine,engine);assert.ok(last('run').args.includes(data+'/recovered.potfile'));assert.ok(!last('run').args.some(x=>x.endsWith('.exe')));
+ $('wizardNext').click();const spec=last('queue_submit').spec;assert.equal(spec.engine,engine);assert.ok(spec.stages[0].args.includes(data+'/recovered.potfile'));assert.ok(!spec.stages[0].args.some(x=>x.endsWith('.exe')));
  assert.equal(last('save').config.resources,resources);assert.equal(last('save').config.data,data);
  w.I18n.setPreferences({language:'en',theme:'dark'});w.I18n.apply();assert.equal($('copyCommand').textContent,'Copy terminal command');
- w.receive({type:'finished',code:2,stopped:true});w.receive({type:'results',id:last('results').id,entries:[]});
+ assert.ok(spec.stages[0].args.includes(data+'/cache'));assert.ok($('stop').classList.contains('hidden')===false);
  await w.happyDOM.close();
 }
 console.log('macOS/Linux frontend: independent data/resources, rule paths, POSIX previews, literal argv and preferences passed.');

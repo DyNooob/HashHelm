@@ -12,6 +12,10 @@
 *.ico binary
 *.rgba binary
 *.zip binary
+*.7z binary
+*.rar binary
+*.hc binary
+*.bin binary
 *.pdf binary
 *.doc binary
 *.docx binary
@@ -22,3 +26,6 @@
 # Preserve dictionary/rule bytes and published SHA-256 values.
 assets/wordlists/** -text -whitespace
 assets/rules/** -text -whitespace
+
+# Preserve upstream license texts verbatim, including their whitespace.
+assets/licenses/** -text -whitespace

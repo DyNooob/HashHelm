@@ -59,7 +59,18 @@ class PackagingTests(unittest.TestCase):
             (source/'cache').mkdir();(source/'cache/module_options.so.cache').write_text('build-host cache')
             pack.copy_engine(source,target)
             for name in pack.RUNTIME_DIRS:self.assertTrue((target/name/'keep.txt').is_file())
-            self.assertTrue((target/'libhashcat.so.8').is_file());self.assertFalse((target/'hashcat.exe').exists());self.assertFalse((target/'bridges/target').exists())
-            self.assertFalse((target/'cache').exists())
+            self.assertTrue((target/'libhashcat.so.8').is_file());self.assertFalse((target/'hashcat.exe').exists());self.assertFalse((target/'bridges/target').exists());self.assertFalse((target/'cache').exists())
+
+    def test_native_embedded_page_stays_below_webview2_string_limit(self):
+        import base64
+        import html
+        page=(ROOT/'ui/index.html').read_text(encoding='utf-8')
+        self.assertEqual(page.count('/* LOGO */'),1,'Reuse the embedded logo instead of duplicating its base64 payload')
+        for marker,file in [('STYLES','style.css'),('CORE','core.js'),('I18N','i18n.js'),('WORKBENCH','workbench.js'),('UPDATES','updates.js'),('TOOLS','tools.js'),('APP','app.js')]:
+            page=page.replace('/* '+marker+' */',(ROOT/'ui'/file).read_text(encoding='utf-8'))
+        page=page.replace('<!-- LICENSE -->',html.escape((ROOT/'LICENSE').read_text(encoding='utf-8'),quote=False))
+        page=page.replace('<!-- WEBVIEW-LICENSE -->',html.escape((ROOT/'assets/licenses/WebView2-Fixed-Version-License.txt').read_text(encoding='utf-8'),quote=False))
+        page=page.replace('/* LOGO */',base64.b64encode((ROOT/'assets/branding/digiforensics.ico').read_bytes()).decode())
+        self.assertLess(len(page.encode('utf-8')),2*1024*1024,'WebView2 NavigateToString rejects oversized inline pages')
 
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,76 @@
+[
+  {
+    "file": "hashcat-29411.hc",
+    "mode": 29411,
+    "password": "hashcat",
+    "sha256": "ad1d4af5df582e63c5860e7c800a57bffdd5db290df37d243062c6d260bcf401",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29411.c"
+  },
+  {
+    "file": "hashcat-29421.hc",
+    "mode": 29421,
+    "password": "hashcat",
+    "sha256": "f4c297b82c40a5f1bf6fda62ce8e04d7c093106b3f56d9f4ff9d345244fcd90a",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29421.c"
+  },
+  {
+    "file": "hashcat-29422.hc",
+    "mode": 29422,
+    "password": "hashcat",
+    "sha256": "4bdb9b2ba3e30acb5185601361ff323bf523bed245fd5d80364b181264a32c26",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29422.c"
+  },
+  {
+    "file": "hashcat-29423.hc",
+    "mode": 29423,
+    "password": "hashcat",
+    "sha256": "df5a3870a985e1bc5e9542f257eaf26b0bed218eb44ca7e7ce1651c902542abd",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29423.c"
+  },
+  {
+    "file": "hashcat-29431.hc",
+    "mode": 29431,
+    "password": "hashcat",
+    "sha256": "4d824b4ff5c8b2d9611f183a5995bafa50b61f000b7be998ab0d098b74570221",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29431.c"
+  },
+  {
+    "file": "hashcat-29451.hc",
+    "mode": 29451,
+    "password": "hashcat",
+    "sha256": "13325179b76e7d422cce940749f56100553a7cdffb3c8cfd40e41d024d33aed5",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29451.c"
+  },
+  {
+    "file": "hashcat-29471.hc",
+    "mode": 29471,
+    "password": "hashcat",
+    "sha256": "378c537aaef056a9f19a82641cd0aabd9c70508280d968ce62cb7384b39ce434",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29471.c"
+  },
+  {
+    "file": "hashcat-29491.hc",
+    "mode": 29491,
+    "password": "hashcat",
+    "sha256": "e22f6740f50b49c457dfac8fe2fcfb702bac7dd2a0f4f9be10f0d20a636816cd",
+    "source": "https://github.com/hashcat/hashcat/blob/v8.0.0/src/modules/module_29491.c"
+  },
+  {
+    "file": "pim-one.hc",
+    "mode": 29421,
+    "password": "HashHelm-container-test",
+    "pim": 1,
+    "keyfile": null,
+    "sha256": "13160c9700c84ecc4175a51ac5d39dd45ab0a14d0d06549767d9948326030f00",
+    "source": "Synthetic Python cryptography/OpenSSL AES-XTS + hashlib PBKDF2"
+  },
+  {
+    "file": "keyfile-pim-one.hc",
+    "mode": 29421,
+    "password": "HashHelm-container-test",
+    "pim": 1,
+    "keyfile": "public-keyfile.txt",
+    "sha256": "3db2bc925e477e5d7855bf504fa43d6daef95dffbf6d627ba95cbf71f1b2e4a1",
+    "source": "Synthetic Python cryptography/OpenSSL AES-XTS + hashlib PBKDF2"
+  }
+]

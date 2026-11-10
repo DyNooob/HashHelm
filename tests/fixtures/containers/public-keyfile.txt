@@ -1,0 +1,1 @@
+HashHelm public keyfile fixture, not a secret.

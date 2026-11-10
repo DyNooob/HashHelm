@@ -5,7 +5,7 @@ const c={engine:'D:/有 空格/hashcat.exe',target:'D:/哈希 文件/test.hash',
 const argv=()=>Array.from(H.argv(c,'D:/test workspace'));
 assert.deepEqual(argv().slice(-2),[c.target,c.wordlist]);assert.equal(argv().filter(x=>x==='--runtime').length,1);
 for(const [m,tail]of [['3',[c.target,c.mask]],['7',[c.target,c.mask,c.wordlist]],['6',[c.target,c.wordlist,c.mask]],['12',[c.target,c.mask,c.wordlist]]]){c.attack=m;assert.deepEqual(argv().slice(-tail.length),tail);}
-c.attack='4';assert.ok(argv().includes('-S'));assert.equal(argv().at(-1),c.target);assert.ok(!argv().includes(c.wordlist));c.runtime='';assert.throws(argv);c.runtime='60';c.attack='0';
+c.attack='4';assert.ok(!argv().includes('-S'));c.slowCandidates=true;assert.ok(argv().includes('-S'));c.slowCandidates=false;assert.equal(argv().at(-1),c.target);assert.ok(!argv().includes(c.wordlist));c.runtime='';assert.throws(argv);c.runtime='60';c.attack='0';
 c.devices='1; whoami';assert.throws(argv);c.devices='1,2';assert.ok(argv().includes('1,2'));c.devices='';
 c.session='../escape';assert.throws(argv);c.session='fh-test-1';c.hashMode='4000';assert.throws(argv);c.recipe='md5(md5(salt) . pass)';assert.ok(argv().includes(c.recipe));c.hashMode='0';assert.ok(!argv().includes('--hash-recipe'));
 c.attack='0';c.customCharset='?l';c.increment=true;assert.ok(!argv().includes('--increment'));assert.ok(!argv().includes('-1'));
@@ -30,6 +30,18 @@ assert.throws(()=>H.argv({...advanced,kernelThreads:'0'},'D:/data'));assert.thro
 assert.equal(H.size('?1?2?8',H.charsetConfig(advanced)),'1040');
 const patterns=Array.from(H.patterns({min:1,max:2,charset:'01',prefix:'CTF?',suffix:'!'}));assert.deepEqual(patterns.map(p=>p.mask),['CTF???1!','CTF???1?1!']);assert.ok(patterns.every(p=>!p.increment));assert.deepEqual(patterns.map(p=>H.size(p.mask,p.customCharset)),['2','4']);
 const chained=Array.from(H.argv({...c,attack:'0',rules:'one.rule\ntwo.rule',rulesConcat:true},'D:/data'));assert.equal(chained.filter(x=>x==='-r').length,2);assert.ok(chained.includes('--rules-concat'));
+for(const attack of ['1','3','4','6','7','9','12']){
+ const args=Array.from(H.argv({...c,attack,wordlist2:'second.txt',rules:'one.rule\ntwo.rule'},'D:/data'));
+ assert.equal(args.filter(x=>x==='-r').length,2,`Hashcat 8 rules must be available in mode ${attack}`);
+}
+const association={...c,attack:'9',wordlist:'',runtime:'60'};
+assert.equal(Array.from(H.argv(association,'D:/data')).at(-1),c.target);
+assert.ok(!Array.from(H.argv(association,'D:/data')).includes(''));
+assert.throws(()=>H.argv({...association,runtime:''},'D:/data'));
+assert.deepEqual(Array.from(H.argv({...association,wordlist:'account-words.txt'},'D:/data')).slice(-2),[c.target,'account-words.txt']);
+assert.equal(H.strategyKey(c),H.strategyKey(Object.fromEntries(Object.entries({...c,session:'another-session',count:20}).reverse())));
+assert.notEqual(H.strategyKey(c),H.strategyKey({...c,rules:'other.rule'}));
+assert.notEqual(H.strategyKey(c),H.strategyKey({...c,runtime:'120'}));
 console.log('Advanced: native multi-device flags, autotune overrides, eight charsets, rules concat, fixed prefix/suffix lengths and validation passed.');
 
 let status={};for(const line of fs.readFileSync('tests/fixtures/hashcat/status-v8-mask.txt','utf8').split(/\r?\n/))status=H.readStatus(line,status)||status;
@@ -45,3 +57,18 @@ assert.equal(H.command('D:/hc.exe',['--help'],'windows'),H.powershell('D:/hc.exe
 const unix=H.relocate({engine:'/old/app/hashcat/hashcat',args:['/old/data/file.hash','/external/words.txt','/Old/app/keep']},{oldData:'/old/data',newData:'/Users/Jenny/Library/Application Support/HashHelm',oldResources:'/old/app',newResources:'/Applications/HashHelm.app/Contents/Resources'});
 assert.equal(unix.engine,'/Applications/HashHelm.app/Contents/Resources/hashcat/hashcat');assert.equal(unix.args[0],'/Users/Jenny/Library/Application Support/HashHelm/file.hash');assert.equal(unix.args[1],'/external/words.txt');assert.equal(unix.args[2],'/Old/app/keep');
 console.log('Cross-platform: POSIX shell quoting, separate resources/data relocation, external paths and case sensitivity passed.');
+
+const stats={words:{'one.txt':{count:'10'},'two.txt':{count:'20'}},rules:{'a.rule':{count:'3'},'b.rule':{count:'5'}}};
+const weighted={...c,wordlist:'one.txt',wordlist2:'two.txt',rules:'a.rule\nb.rule',rulesConcat:false,increment:false};
+assert.equal(H.workload({...weighted,attack:'0'},stats).candidates,'150');
+assert.equal(H.workload({...weighted,attack:'0',rulesConcat:true},stats).candidates,'80');
+assert.equal(H.workload({...weighted,attack:'1'},stats).candidates,'3000');
+assert.equal(H.workload({...weighted,attack:'6',mask:'?d?d'},stats).candidates,'15000');
+assert.equal(H.workload({...weighted,attack:'3',rules:'',mask:'?1?1',customCharset:'?l?u'},stats).candidates,'2704');
+assert.equal(H.workload({...weighted,attack:'3',rules:'',mask:'?d'.repeat(20)},stats).candidates,'100000000000000000000');
+assert.equal(H.workload({...weighted,attack:'9'},stats).candidates,null);
+assert.equal(H.workload({...weighted,attack:'0',rules:'missing.rule'},stats).candidates,null);
+assert.equal(H.workload({...weighted,attack:'0',rules:''},{words:{'one.txt':{count:null,reason:'missing'}},rules:{}},100).candidates,null);
+assert.equal(H.duration(null),'待测速');assert.equal(H.duration(0.1),'< 1 秒');assert.equal(H.duration(3601),'2 小时');
+assert.notEqual(H.speedKey(c),H.speedKey({...c,optimized:!c.optimized}));assert.notEqual(H.speedKey(c),H.speedKey({...c,devices:'2'}));
+console.log('Workload: exact bigint masks, combination/hybrid multiplication, concatenated vs chained rules, unknown contexts and benchmark configuration separation passed.');

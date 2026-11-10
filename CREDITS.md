@@ -2,7 +2,8 @@
 
 Originally developed by DyNooob.
 
-- Official Website: https://www.foren.dev
+- DigiForensics: https://digiforensics.cn
+- Foren DEV (official software release website): https://www.foren.dev
 - Original Project: https://github.com/DyNooob/HashHelm
 - License: [HashHelm Attribution License v1.0](LICENSE)
 

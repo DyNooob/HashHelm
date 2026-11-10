@@ -7,6 +7,7 @@ use std::{
     path::Path,
 };
 type Result<T> = std::result::Result<T, String>;
+mod archives;
 fn fail(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
@@ -19,6 +20,9 @@ fn u16le(b: &[u8], p: usize) -> Result<u16> {
 }
 fn u32le(b: &[u8], p: usize) -> Result<u32> {
     Ok(u32::from_le_bytes(bytes(b, p, 4)?.try_into().unwrap()))
+}
+fn u64le(b: &[u8], p: usize) -> Result<u64> {
+    Ok(u64::from_le_bytes(bytes(b, p, 8)?.try_into().unwrap()))
 }
 fn hex(b: &[u8]) -> String {
     use std::fmt::Write;
@@ -43,7 +47,7 @@ pub struct Member {
     pub index: usize,
     pub name: String,
     pub mode: u32,
-    pub size: u32,
+    pub size: u64,
 }
 #[derive(Serialize)]
 pub struct Extracted {
@@ -73,6 +77,12 @@ pub fn extract(path: &Path, member: Option<usize>) -> Result<Extracted> {
     let sig = read_at(&mut f, 0, 8)?;
     if sig.starts_with(b"PK\x03\x04") || sig.starts_with(b"PK\x05\x06") {
         return zip(&mut f, member);
+    }
+    if sig.starts_with(b"Rar!\x1a\x07") {
+        return archives::rar(&mut f, member);
+    }
+    if sig.starts_with(b"7z\xbc\xaf\x27\x1c") {
+        return archives::seven(&mut f);
     }
     if sig == [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1] {
         return office(path);
@@ -118,9 +128,9 @@ struct ZipEntry {
     method: u16,
     crc: u32,
     time: u16,
-    compressed: u32,
-    plain: u32,
-    offset: u32,
+    compressed: u64,
+    plain: u64,
+    offset: u64,
     strength: Option<u8>,
 }
 fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
@@ -136,20 +146,57 @@ fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
     if u16le(&tail, end + 4)? != 0 || u16le(&tail, end + 6)? != 0 {
         return Err("分卷 ZIP 暂不支持".into());
     }
-    let count = u16le(&tail, end + 10)?;
-    let size = u32le(&tail, end + 12)?;
-    let offset = u32le(&tail, end + 16)?;
-    if count == u16::MAX || size == u32::MAX || offset == u32::MAX {
-        return Err("ZIP64 暂不支持自动提取，请使用外部工具".into());
+    let mut count = u64::from(u16le(&tail, end + 10)?);
+    let mut size = u64::from(u32le(&tail, end + 12)?);
+    let mut offset = u64::from(u32le(&tail, end + 16)?);
+    let mut zip64 = false;
+    if count == u64::from(u16::MAX) || size == u64::from(u32::MAX) || offset == u64::from(u32::MAX)
+    {
+        zip64 = true;
+        let locator_offset = len
+            .saturating_sub(tail.len() as u64)
+            .checked_add(end as u64)
+            .and_then(|v| v.checked_sub(20))
+            .ok_or("ZIP64 定位记录缺失")?;
+        let locator = read_at(f, locator_offset, 20)?;
+        if &locator[..4] != b"PK\x06\x07" {
+            return Err("ZIP64 定位记录缺失".into());
+        }
+        if u32le(&locator, 4)? != 0 || u32le(&locator, 16)? != 1 {
+            return Err("分卷 ZIP 暂不支持".into());
+        }
+        let record_offset = u64le(&locator, 8)?;
+        let record = read_at(f, record_offset, 56)?;
+        if &record[..4] != b"PK\x06\x06" || !(44..=1024 * 1024).contains(&u64le(&record, 4)?) {
+            return Err("ZIP64 结束记录损坏".into());
+        }
+        if record_offset
+            .checked_add(12)
+            .and_then(|v| v.checked_add(u64le(&record, 4).ok()?))
+            != Some(locator_offset)
+        {
+            return Err("ZIP64 结束记录偏移无效".into());
+        }
+        if u32le(&record, 16)? != 0
+            || u32le(&record, 20)? != 0
+            || u64le(&record, 24)? != u64le(&record, 32)?
+        {
+            return Err("分卷 ZIP 暂不支持".into());
+        }
+        count = u64le(&record, 32)?;
+        size = u64le(&record, 40)?;
+        offset = u64le(&record, 48)?;
+    } else if u64::from(u16le(&tail, end + 8)?) != count {
+        return Err("ZIP 中央目录记录数量不一致".into());
     }
     if size > 16 * 1024 * 1024 || count > 20000 {
         return Err("ZIP 目录过大，超过当前解析上限".into());
     }
-    let cd = read_at(f, u64::from(offset), size as usize)?;
+    let cd = read_at(f, offset, size as usize)?;
     let mut p = 0;
     let mut entries = Vec::new();
     let mut unsupported = false;
-    for index in 0..usize::from(count) {
+    for index in 0..count as usize {
         if bytes(&cd, p, 4)? != b"PK\x01\x02" {
             return Err("ZIP 中央目录损坏".into());
         }
@@ -161,15 +208,45 @@ fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
         let name = String::from_utf8_lossy(bytes(&cd, p + 46, n)?).to_string();
         let extra = bytes(&cd, p + 46 + n, x)?;
         let mut strength = None;
+        let mut plain = u64::from(u32le(&cd, p + 24)?);
+        let mut compressed = u64::from(u32le(&cd, p + 20)?);
+        let mut entry_offset = u64::from(u32le(&cd, p + 42)?);
+        let mut zip64_extra = false;
         let mut q = 0;
         while q + 4 <= extra.len() {
             let tag = u16le(extra, q)?;
             let sz = usize::from(u16le(extra, q + 2)?);
             let b = bytes(extra, q + 4, sz)?;
+            if tag == 0x0001 {
+                zip64_extra = true;
+                zip64 = true;
+                let mut at = 0;
+                if plain == u64::from(u32::MAX) {
+                    plain = u64le(b, at)?;
+                    at += 8;
+                }
+                if compressed == u64::from(u32::MAX) {
+                    compressed = u64le(b, at)?;
+                    at += 8;
+                }
+                if entry_offset == u64::from(u32::MAX) {
+                    entry_offset = u64le(b, at)?;
+                    at += 8;
+                }
+                if u16le(&cd, p + 34)? == u16::MAX && u32le(b, at)? != 0 {
+                    return Err("分卷 ZIP 暂不支持".into());
+                }
+            }
             if tag == 0x9901 && b.len() >= 7 && &b[2..4] == b"AE" {
                 strength = Some(b[4]);
             }
             q += 4 + sz;
+        }
+        if !zip64_extra && [plain, compressed, entry_offset].contains(&u64::from(u32::MAX)) {
+            return Err("ZIP64 扩展字段缺失".into());
+        }
+        if u16le(&cd, p + 34)? != 0 && u16le(&cd, p + 34)? != u16::MAX {
+            return Err("分卷 ZIP 暂不支持".into());
         }
         if flags & 1 != 0 && !name.ends_with('/') {
             if flags & 0x40 != 0
@@ -184,9 +261,9 @@ fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
                     method,
                     crc: u32le(&cd, p + 16)?,
                     time: u16le(&cd, p + 12)?,
-                    compressed: u32le(&cd, p + 20)?,
-                    plain: u32le(&cd, p + 24)?,
-                    offset: u32le(&cd, p + 42)?,
+                    compressed,
+                    plain,
+                    offset: entry_offset,
                     strength,
                 });
             }
@@ -224,14 +301,16 @@ fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
     if !eligible(&selected) {
         return Err("所选 ZIP 项过大，请选择较小的加密项或使用外部提取工具".into());
     }
-    let local = read_at(f, u64::from(selected.offset), 30)?;
+    let local = read_at(f, selected.offset, 30)?;
     if &local[..4] != b"PK\x03\x04" {
         return Err("ZIP 本地文件头损坏".into());
     }
-    let start = u64::from(selected.offset)
-        + 30
-        + u64::from(u16le(&local, 26)?)
-        + u64::from(u16le(&local, 28)?);
+    let start = selected
+        .offset
+        .checked_add(30)
+        .and_then(|n| n.checked_add(u64::from(u16le(&local, 26).ok()?)))
+        .and_then(|n| n.checked_add(u64::from(u16le(&local, 28).ok()?)))
+        .ok_or("ZIP 数据偏移溢出")?;
     let b = read_at(f, start, selected.compressed as usize)?;
     let (hash, mode) = if let Some(s) = selected.strength {
         let salt = match s {
@@ -287,6 +366,9 @@ fn zip(f: &mut File, selection: Option<usize>) -> Result<Extracted> {
             "ZIP · ZipCrypto"
         },
     );
+    if zip64 {
+        result.format = result.format.replacen("ZIP", "ZIP64", 1);
+    }
     result.note = format!(
         "正在验证 ZIP 内的「{}」。其他加密项可能使用不同密码；找到后请解压验证。",
         selected.name
@@ -593,6 +675,16 @@ mod tests {
             return;
         }
         for (name, mode) in [
+            ("zip64.zip", 17200),
+            ("seven.7z", 11600),
+            ("seven-headers.7z", 11600),
+            ("seven-store.7z", 11600),
+            ("seven-lzma.7z", 11600),
+            ("rar3.rar", 23800),
+            ("rar3-store.rar", 23700),
+            ("rar3-headers.rar", 12500),
+            ("rar5.rar", 13000),
+            ("rar5-headers.rar", 13000),
             ("aes.zip", 13600),
             ("legacy.zip", 17200),
             ("stored.zip", 17210),
@@ -623,7 +715,12 @@ mod tests {
         assert_ne!(first.hash, second.hash);
         assert_eq!(second.selected, Some(1));
         assert!(extract(&base.join("aes.zip"), Some(99)).is_err());
-        for name in ["plain-word.docx", "truncated.zip", "fake.docx"] {
+        for name in [
+            "plain-word.docx",
+            "truncated.zip",
+            "fake.docx",
+            "broken-zip64.zip",
+        ] {
             assert!(extract(&base.join(name), None).is_err(), "{name}");
         }
     }

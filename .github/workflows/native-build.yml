@@ -11,6 +11,79 @@ permissions:
   contents: read
 
 jobs:
+  windows:
+    name: windows-x64-offline
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Prepare official Hashcat
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path downloads,vendor -Force | Out-Null
+          Invoke-WebRequest https://hashcat.net/files/hashcat-8.0.0.7z -OutFile downloads/hashcat-8.0.0.7z
+          if ((Get-FileHash downloads/hashcat-8.0.0.7z).Hash -ne '9FA86E1BFD5DD898D3C83AA38A67B08DB1BA5D2F5252DFFA2AF44A8C62585F49') { throw 'Hashcat checksum mismatch' }
+          tar -xf downloads/hashcat-8.0.0.7z -C vendor
+          if ($LASTEXITCODE -ne 0) { throw 'Hashcat extraction failed' }
+      - name: Rust and frontend checks
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup override set stable
+          cargo clippy --all-targets --locked -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --no-default-features --lib --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm ci --prefix tests/browser --ignore-scripts --no-audit --no-fund
+          node scripts/ui-tests.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/workflow-tests.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/update-tests.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/session-ui-tests.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/usability-tests.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/platform-ui-tests.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_packaging.py
+      - name: Package and verify native startup
+        shell: pwsh
+        run: |
+          powershell -NoProfile -File scripts/package.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:HASHHELM_GUI_PATH=(Get-Content dist/size-report-offline.json -Raw | ConvertFrom-Json).packageDirectory + '/HashHelm.exe'
+          $env:EXPECTED_PLATFORM='windows'
+          $env:EXPECTED_ARCH='x64'
+          python scripts/startup-tests.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/native_startup.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --release --locked --bin extract-check --bin verify-check --bin container-check
+          $env:HASHHELM_TEST_PROFILE='release'
+          python scripts/file-verification-tests.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/container-tests.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v6
+        with:
+          name: HashHelm-windows-x64-offline
+          path: |
+            dist/*-offline.7z
+            dist/size-report-offline.json
+            tests/artifacts/native-startup.json
+            tests/artifacts/startup-regression/results.json
+          if-no-files-found: error
+          retention-days: 7
   unix:
     name: ${{ matrix.platform }}-${{ matrix.arch }}
     strategy:
@@ -32,7 +105,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 75
     env:
-      MACOSX_DEPLOYMENT_TARGET: '14.0'
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
       HASHHELM_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@v6
@@ -61,6 +134,9 @@ jobs:
           npm ci --prefix tests/browser --ignore-scripts --no-audit --no-fund
           node scripts/ui-tests.cjs
           node scripts/workflow-tests.mjs
+          node scripts/update-tests.mjs
+          node scripts/session-ui-tests.mjs
+          node scripts/usability-tests.mjs
           node scripts/platform-ui-tests.mjs
           python3 -m unittest discover -s tests -p 'test_packaging.py'
       - name: Build pinned full Hashcat
@@ -69,6 +145,9 @@ jobs:
         run: |
           cargo clippy --all-targets --locked -- -D warnings
           cargo test --no-default-features --lib --locked
+          cargo build --release --locked --no-default-features --bin extract-check --bin verify-check --bin container-check
+          HASHHELM_TEST_PROFILE=release python3 scripts/file-verification-tests.py
+          HASHHELM_TEST_PROFILE=release python3 scripts/container-tests.py
       - name: Build and package
         run: bash scripts/build-unix.sh
       - name: Native GUI startup smoke

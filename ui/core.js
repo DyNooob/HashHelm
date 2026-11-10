@@ -3,44 +3,83 @@ window.HC = (() => {
  const names={'0':'字典尝试','1':'双字典组合','3':'规律枚举','4':'概率模型','6':'字典 + 规律','7':'规律 + 字典','9':'关联尝试','12':'规律嵌入字典'};
  const fileName=p=>String(p||'').split(/[\\/]/).pop()||'未选择文件';
  function validate(c){
-  if(!c.engine||!c.target)throw Error('请先选择文件并确认引擎位置');
-  if(!/^\d+$/.test(c.hashMode))throw Error('请确认哈希算法编号');
-  if(!names[c.attack])throw Error('此方式请在完整命令中配置');
+  if(typeof c.engine!=='string'||typeof c.target!=='string'||!c.engine||!c.target)throw Error('请先选择文件并确认引擎位置');
+  if(typeof c.hashMode!=='string'||!/^\d+$/.test(c.hashMode))throw Error('请确认哈希算法编号');
+  if(typeof c.attack!=='string'||!names[c.attack])throw Error('此方式请在完整命令中配置');
   if(!/^[\w-]{1,90}$/.test(c.session))throw Error('内部任务编号无效，请重新生成计划');
   if(c.devices&&!/^[1-9]\d*(,[1-9]\d*)*$/.test(c.devices))throw Error('设备编号请填写数字，以英文逗号分隔');
   if(c.deviceTypes&&!/^[123](,[123])*$/.test(c.deviceTypes))throw Error('设备类型只能为 1、2、3，以英文逗号分隔');
   for(const key of ['kernelThreads','kernelAccel','kernelLoops','virtualMulti','statusTimer'])if(c[key]&&!/^[1-9]\d{0,5}$/.test(String(c[key])))throw Error('内核、并行与刷新参数需为正整数，最多六位');
   if(c.runtime&&(!/^\d+$/.test(String(c.runtime))||Number(c.runtime)<1||Number(c.runtime)>86400))throw Error('每阶段时间需为 1–86400 秒');
   if(c.attack==='4'&&!c.runtime)throw Error('概率模型需要阶段时间上限');
-  if(['0','1','6','7','9','12'].includes(c.attack)&&!c.wordlist)throw Error('请选择字典或填写候选密码');
+  if(['0','1','6','7','12'].includes(c.attack)&&!c.wordlist)throw Error('请选择字典或填写候选密码');
+  if(c.attack==='9'&&!c.wordlist&&!c.runtime)throw Error('自动关联尝试需要阶段时间上限');
   if(c.attack==='1'&&!c.wordlist2)throw Error('双字典组合需要两份字典');
   if(['3','6','7','12'].includes(c.attack)&&!c.mask)throw Error('请描述密码规律');
-  if(['3','6','7','12'].includes(c.attack)){
-   const sets=charsetConfig(c),visit=(s,seen=[])=>{for(let i=0;i<s.length;i++)if(s[i]==='?'){const t=s[++i];if(/[1-8]/.test(t||'')&&t){if(!sets[t])throw Error('请填写掩码引用的自定义字符集');if(seen.includes(t))throw Error('自定义字符集不能循环引用');visit(sets[t],[...seen,t]);}else if(!'dlusahHb?'.includes(t||'')||!t){if(c.attack!=='12'||!['w','q'].includes(t)||t==='q'&&!c.wordlist2)throw Error('掩码包含不支持的占位符');}}};visit(c.mask);
+  if(['3','6','7','12'].includes(c.attack)||c.attack==='4'&&c.pcfgMask){
+   const sets=charsetConfig(c),visit=(s,seen=[])=>{for(let i=0;i<s.length;i++)if(s[i]==='?'){const t=s[++i];if(/[1-8]/.test(t||'')&&t){if(!sets[t])throw Error('请填写掩码引用的自定义字符集');if(seen.includes(t))throw Error('自定义字符集不能循环引用');visit(sets[t],[...seen,t]);}else if(!'dlusahHb?'.includes(t||'')||!t){if(c.attack!=='12'||!['w','q'].includes(t)||t==='q'&&!c.wordlist2)throw Error('掩码包含不支持的占位符');}}};visit(c.attack==='4'?c.pcfgMask:c.mask);
   }
+  for(const k of ['pcfgMin','pcfgMax'])if(c[k]&&(!/^[1-9]\d{0,2}$/.test(c[k])||Number(c[k])>256))throw Error('PCFG 长度需为 1–256');
+  if(c.pcfgMin&&c.pcfgMax&&Number(c.pcfgMin)>Number(c.pcfgMax))throw Error('PCFG 最短长度不能大于最长长度');
   if(c.hashMode==='4000'&&!c.recipe)throw Error('Hash Recipe 模式需要填写表达式');
-  if(c.rules&&['1','4'].includes(c.attack))throw Error('该方式的规则参数请在完整命令中配置');
+  if(c.vcPimStart||c.vcPimStop){if(!/^294[123579][123]$/.test(c.hashMode)||!/^\d+$/.test(String(c.vcPimStart))||!/^\d+$/.test(String(c.vcPimStop))||Number(c.vcPimStart)<1||Number(c.vcPimStart)>Number(c.vcPimStop)||Number(c.vcPimStop)>65535)throw Error('VeraCrypt PIM 范围无效');}
+  if(c.vcKeyfiles&&(!/^294[123579][123]$/.test(c.hashMode)||c.vcKeyfiles.includes(',')))throw Error('VeraCrypt 密钥文件路径不能含英文逗号');
   if(c.increment&&['3','6','7'].includes(c.attack)&&(!Number.isInteger(Number(c.incrementMin))||Number(c.incrementMin)<1))throw Error('递增起始长度无效');
   for(const v of Object.values(c))if(typeof v==='string'&&v.includes('\0'))throw Error('参数中不能包含空字符');
  }
  function argv(c,data){validate(c);const m=c.attack,r=data.replaceAll('\\','/');
   const a=['-m',c.hashMode,'-a',m,'--session',c.session,'--restore-file-path',r+'/'+c.session+'.restore','--cache-path',r+'/cache','--potfile-path',r+'/recovered.potfile','--logfile-disable','--status','--status-timer',String(c.statusTimer||'1')];
   if(c.statusJson)a.push('--status-json');
+  if(c.vcPimStart)a.push('--veracrypt-pim-start',String(c.vcPimStart),'--veracrypt-pim-stop',String(c.vcPimStop));
+  if(c.vcKeyfiles)a.push('--veracrypt-keyfiles',c.vcKeyfiles.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).join(','));
   for(const [key,flag]of [['deviceTypes','-D'],['kernelThreads','-T'],['kernelAccel','-n'],['kernelLoops','-u'],['virtualMulti','-Y']])if(c[key])a.push(flag,String(c[key]));
   if(c.markovDisable)a.push('--markov-disable');
-  if(c.devices)a.push('-d',c.devices);if(c.runtime)a.push('--runtime',String(c.runtime));if(c.outfile)a.push('-o',c.outfile);if(c.hashMode==='4000'&&c.recipe)a.push('--hash-recipe',c.recipe);if(c.optimized)a.push('-O');for(const rule of (c.rules||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean))a.push('-r',rule);if(c.rulesConcat&&c.rules)a.push('--rules-concat');if(m==='4')a.push('-S');
+  if(c.devices)a.push('-d',c.devices);if(c.runtime)a.push('--runtime',String(c.runtime));if(c.outfile)a.push('-o',c.outfile);if(c.hashMode==='4000'&&c.recipe)a.push('--hash-recipe',c.recipe);if(c.optimized)a.push('-O');for(const rule of (c.rules||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean))a.push('-r',rule);if(c.rulesConcat&&c.rules)a.push('--rules-concat');if(c.slowCandidates)a.push('-S');
   if(['3','6','7','12'].includes(m))for(const [key,value]of Object.entries(charsetConfig(c)))if(value)a.push('-'+key,value);if(['3','6','7'].includes(m)&&c.increment)a.push('--increment','--increment-min',String(c.incrementMin));
-  a.push(c.target);if(['0','1','6','9'].includes(m))a.push(c.wordlist);if(m==='1')a.push(c.wordlist2);if(['3','6'].includes(m))a.push(c.mask);if(m==='7')a.push(c.mask,c.wordlist);if(m==='12'){a.push(c.mask,c.wordlist);if(c.wordlist2)a.push(c.wordlist2);}if(m==='4'&&c.pcfg)a.push(c.pcfg);return a;
+  a.push(c.target);if(['0','1','6'].includes(m)||(m==='9'&&c.wordlist))a.push(c.wordlist);if(m==='1')a.push(c.wordlist2);if(['3','6'].includes(m))a.push(c.mask);if(m==='7')a.push(c.mask,c.wordlist);if(m==='12'){a.push(c.mask,c.wordlist);if(c.wordlist2)a.push(c.wordlist2);}if(m==='4'){if(c.pcfg)a.push(c.pcfg);else if(c.pcfgHints)a.push('hints');for(const [key,option]of [['pcfgHints','hintfile'],['pcfgMask','mask'],['pcfgMin','pwmin'],['pcfgMax','pwmax']])if(c[key])a.push(option+'='+c[key]);if(c.pcfgNoOmen)a.push('omen=0');}return a;
  }
  const powershell=(exe,args)=>'& '+[exe,...args].map(v=>"'"+String(v).replaceAll("'","''")+"'").join(' ');
  const posix=(exe,args)=>[exe,...args].map(v=>"'"+String(v).replaceAll("'", "'\"'\"'")+"'").join(' ');
  const command=(exe,args,platform='windows')=>platform==='windows'?powershell(exe,args):posix(exe,args);
+ const strategyKey=c=>JSON.stringify(Object.fromEntries(Object.entries(c).filter(([key])=>!['session','count'].includes(key)).sort(([a],[b])=>a.localeCompare(b))));
+ const speedKey=c=>JSON.stringify(['engine','hashMode','devices','deviceTypes','optimized','kernelThreads','kernelAccel','kernelLoops','virtualMulti','recipe','vcPimStart','vcPimStop'].map(k=>[k,c[k]??'']));
+ function workload(c,stats={words:{},rules:{}},fallback=null){
+  const reasons=[],word=path=>{const input=stats.words?.[path];if(input?.count!=null)return BigInt(input.count);if(input?.reason)reasons.push(input.reason);return null;};
+  let base=null;const m=c.attack;
+  if(m==='0')base=word(c.wordlist)??(stats.words?.[c.wordlist]===undefined&&fallback!=null?BigInt(fallback):null);
+  else if(m==='1'){const a=word(c.wordlist),b=word(c.wordlist2);if(a!==null&&b!==null)base=a*b;}
+  else if(['3','6','7'].includes(m)){
+   const mask=size(c.mask,charsetConfig(c),c.increment?c.incrementMin:null);
+   if(mask!==null){if(m==='3')base=BigInt(mask);else {const n=word(c.wordlist);if(n!==null)base=n*BigInt(mask);}}
+  }
+  // PCFG, association and wordlist-in-mask remain engine-sized: a line count
+  // cannot establish their grammar/context-dependent work or token semantics.
+  let multiplier=1n;const rules=(c.rules||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  if(rules.length){multiplier=c.rulesConcat?0n:1n;for(const path of rules){const value=stats.rules?.[path];if(value?.count==null){multiplier=null;if(value?.reason)reasons.push(value.reason);break;}const n=BigInt(value.count);multiplier=c.rulesConcat?multiplier+n:multiplier*n;}}
+  const candidates=base!==null&&multiplier!==null?base*multiplier:null;
+  if(base===null)reasons.push(['4','9','12'].includes(m)?'此方式的范围由引擎确定':'输入尚未统计，或使用了复杂字符集');
+  if(multiplier===null)reasons.push('规则文件尚未统计');
+  if(candidates===0n)reasons.push('输入没有可用的非空行，请检查字典或规则');
+  return {base:base?.toString()??null,multiplier:multiplier?.toString()??null,candidates:candidates?.toString()??null,reasons:[...new Set(reasons)],budget:Number(c.runtime)||null};
+ }
+ const duration=seconds=>seconds==null||!Number.isFinite(seconds)?'待测速':seconds<1?'< 1 秒':seconds<60?Math.ceil(seconds)+' 秒':seconds<3600?Math.ceil(seconds/60)+' 分钟':seconds<86400?Math.ceil(seconds/3600)+' 小时':seconds<31536000?Math.ceil(seconds/86400)+' 天':'> 1 年';
  function decodeHex(hex){if(typeof hex!=='string'||hex.length%2||!/^[a-f0-9]*$/i.test(hex))return null;try{return new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(hex.match(/../g)||[],v=>parseInt(v,16)));}catch{return null;}}
  const charsetConfig=c=>Object.fromEntries(Array.from({length:8},(_,i)=>[String(i+1),i?c['customCharset'+(i+1)]||'':c.customCharset||'']));
  function size(mask,custom='',min=null){const sets={d:'0123456789',l:'abcdefghijklmnopqrstuvwxyz',u:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',s:' !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',h:'0123456789abcdef',H:'0123456789ABCDEF',b:Array.from({length:256},(_,i)=>String.fromCharCode(i)).join('')};sets.a=sets.d+sets.l+sets.u+sets.s;Object.assign(sets,typeof custom==='object'?custom:{'1':custom});
   const expand=(s,seen=[])=>{if(!s||/[^\x20-\x7e]|\.hcchr$/i.test(s))return null;let out='';for(let i=0;i<s.length;i++){if(s[i]==='?'){const t=s[++i];if(t==='?'){out+='?';continue;}if(!sets[t]||seen.includes(t))return null;const value=/^[1-8]$/.test(t)?expand(sets[t],[...seen,t]):sets[t];if(value===null)return null;out+=value;}else out+=s[i];}return out;};let product=1n,total=0n,n=0;const widths=[];
   for(let i=0;i<mask.length;i++){let w=1;if(mask[i]==='?'){const t=mask[++i];if(/^[1-8]$/.test(t||'')){const value=expand(sets[t],[t]);if(!value)return null;w=new Set(value).size;}else if(t==='?')w=1;else if(sets[t])w=sets[t].length;else return null;}widths.push(BigInt(w));}
   for(const w of widths){product*=w;if(++n>=Number(min??widths.length))total+=product;}return total.toString();
+ }
+ function probeArgs(c){
+  const marker='__HASHHELM_PLANNING_TARGET__',source=argv({...c,target:marker,outfile:''},'/hashhelm-probe');
+  const removeValues=new Set(['--session','--restore-file-path','--cache-path','--potfile-path','--status-timer','--runtime','-d','-D','-T','-n','-u','-Y','--veracrypt-pim-start','--veracrypt-pim-stop','--veracrypt-keyfiles']);
+  const result=[];for(let i=0;i<source.length;i++){const a=source[i];if(removeValues.has(a)){i++;continue;}if([marker,'--status','--status-json','--logfile-disable'].includes(a))continue;result.push(a);}return result;
+ }
+ function resumeArgs(args,options={},restore=true){
+  const result=[];for(let i=0;i<args.length;i++){const a=args[i],name=a.split('=')[0];if(a==='--restore-position')continue;if((options.runtime!==undefined&&name==='--runtime')||(options.devices!==undefined&&['-d','--backend-devices'].includes(name))){if(!a.includes('='))i++;continue;}result.push(a);}
+  if(options.runtime!==undefined){if(options.runtime!==''&&!/^[1-9]\d{0,4}$/.test(String(options.runtime)))throw Error('续跑时间需为 1–86400 秒');if(Number(options.runtime)>86400)throw Error('续跑时间需为 1–86400 秒');if(options.runtime!=='')result.push('--runtime',String(options.runtime));}
+  if(options.devices!==undefined){if(options.devices!==''&&!/^[1-9]\d*(,[1-9]\d*)*$/.test(options.devices))throw Error('设备编号请填写数字，以英文逗号分隔');if(options.devices)result.push('-d',options.devices);}
+  return restore?result.concat('--restore-position'):result;
  }
  const restorePath=args=>{const i=args?.indexOf('--restore-file-path');return i>=0?args[i+1]:'';};
  function rebase(value,oldData,newData){
@@ -84,5 +123,6 @@ window.HC = (() => {
  }
  const percent=s=>s?.done!=null&&s?.total!=null&&BigInt(s.total)>0n?Number(BigInt(s.done)*10000n/BigInt(s.total))/100:null;
  const count=v=>integer(v)!==null?BigInt(v).toLocaleString(): '—';
- return {names,fileName,validate,argv,powershell,posix,command,decodeHex,size,restorePath,rebase,relocate,charsetConfig,patterns,readStatus,percent,count};
+ function recovered(hex,spec){let value=String(hex||''),pim=null;if(spec?.pim_start){const match=value.match(/(?:20){3}2850494d3d((?:3[0-9])+)29$/i);if(match){const n=Number(decodeHex(match[1]));if(n>=spec.pim_start&&n<=spec.pim_stop){pim=n;value=value.slice(0,-match[0].length);}}if(pim===null&&spec.pim_start===spec.pim_stop)pim=spec.pim_start;}return {hex:value,value:decodeHex(value),pim};}
+ return {names,fileName,validate,argv,powershell,posix,command,strategyKey,speedKey,workload,duration,decodeHex,recovered,size,restorePath,resumeArgs,probeArgs,rebase,relocate,charsetConfig,patterns,readStatus,percent,count};
 })();

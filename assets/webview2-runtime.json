@@ -1,0 +1,8 @@
+{
+  "version": "157.0.4341.46",
+  "architecture": "x64",
+  "source": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/edb19202-9173-4dd1-ab87-c45c2d80aaec/Microsoft.WebView2.FixedVersionRuntime.157.0.4341.46.x64.cab",
+  "sha256": "0AC7317A08C3F3BEEBBB9B6D90F5B77352569F0A33A54A15EF6AAABC82899B7C",
+  "bytes": 310997156,
+  "metadataSource": "https://developer.microsoft.com/microsoft-edge/api/webview2"
+}
