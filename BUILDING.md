@@ -115,6 +115,7 @@ python3 scripts/package_unix.py --engine-dir "$HASHCAT_SOURCE" --output dist/my-
 | Windows | 便携目录旁的 assets/hashcat | 便携目录内 `workspace` |
 
 macOS 不把可变数据写进 `.app`，避免资源只读和应用签名失效。
+macOS 引擎基于固定的 Hashcat 8.0.0 提交，仅把会话 PID 锁的位置改到现有 `--cache-path` 目录；补丁在 `scripts/patch-hashcat-macos.py`，不改算法或参数。CI 会在引擎运行中及强制结束后校验应用签名。
 引擎查询和未指定 `--cache-path` 的命令统一使用工作区的 `cache`，不打包构建机缓存；包内引擎运行后会再次检查应用签名。
 Linux 在程序目录创建空的 `portable.flag` 后，可使用旁边的 `workspace`；目录必须可写。
 也可用绝对路径 `HASHHELM_DATA_DIR` 覆盖数据目录。

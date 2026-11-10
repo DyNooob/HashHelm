@@ -76,7 +76,10 @@ if packaged_runtime_check:
 if os_name == 'macos':
     app = next(parent for parent in exe.parents if parent.suffix == '.app')
     subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=True)
+    from macos_engine_smoke import check as check_engine_seal
+    check_engine_seal(app)
 report = {'platform':os_name, 'arch':arch, 'platformInfo':info, 'uiHandshake':initialized,'packagedRuntimeCheck':packaged_runtime_check,'signatureVerifiedAfterEngineUse':os_name=='macos', 'stderr':stderr, 'runtimeProcesses':runtime_processes,'applicationEvents':application_events,'limitations':['JS/IPC startup and runtime security arguments only; no visual or GPU-performance acceptance.']}
+report['pidCacheAndForcedTerminationSignatureVerified'] = os_name == 'macos'
 output = ROOT / 'tests/artifacts/native-startup.json'
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text(json.dumps(report, indent=2) + '\n')

@@ -14,6 +14,9 @@ if [[ ! -e "$engine_source" ]]; then
 fi
 actual_commit=$(git -C "$engine_source" rev-parse HEAD)
 [[ "$actual_commit" == "$engine_commit" ]] || { echo 'Existing Hashcat source is not the pinned 8.0.0 revision; use another HASHCAT_SOURCE directory.' >&2; exit 2; }
+if [[ "$(uname -s)" == Darwin ]]; then
+  python3 "$project_root/scripts/patch-hashcat-macos.py" "$engine_source"
+fi
 jobs=${HASHHELM_BUILD_JOBS:-2}
 [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo 'HASHHELM_BUILD_JOBS must be positive.' >&2; exit 2; }
 # Maintainer mode avoids host-specific AVX/native instructions in distributed builds.

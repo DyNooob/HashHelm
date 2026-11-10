@@ -78,3 +78,5 @@ The native Foren DEV update client uses ureq 3.5.1, rustls and rustls-platform-v
 ## VeraCrypt header verification (0.11)
 
 Native header verification uses RustCrypto aes/cipher, serpent, twofish, camellia, kuznyechik, pbkdf2/hmac, ripemd, whirlpool, streebog and blake2, under their individual licenses included in Rust-Dependency-Notices.txt. No VeraCrypt binaries, drivers or mount services are distributed. The implementation follows the public volume-format specification. Test header provenance is recorded separately in tests/fixtures/containers/manifest.json; Hashcat public examples retain Hashcat's MIT attribution.
+
+Native macOS Hashcat 8.0.0 includes the small, reproducible patch in scripts/patch-hashcat-macos.py: PID session locks use the existing cache directory instead of the signed application's resource directory. No hash-mode or cryptographic implementation is changed. Windows and Linux engine distributions are unchanged. Upstream Hashcat remains MIT-licensed.

@@ -154,6 +154,7 @@ def main():
         overhead = archive.stat().st_size - baseline.stat().st_size
         if overhead > 10_000_000: raise ValueError('Compressed UI overhead exceeds 10 MB')
     report = {'version': VERSION, 'build': BUILD, 'platform': os_name, 'arch': arch, 'archiveBytes': archive.stat().st_size, 'engineBytes': engine_bytes, 'staticOverheadBytes': total - engine_bytes, 'archiveOverheadBytes': overhead, 'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(), 'signed': 'ad-hoc development signature; not notarized' if os_name == 'macos' else False}
+    report['enginePatches'] = ['macOS session PID locks use the existing --cache-path directory'] if os_name == 'macos' else []
     (args.output / f'{name}.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
 
