@@ -288,7 +288,7 @@ fn xts<C: BlockEncrypt + BlockDecrypt + KeyInit + BlockSizeUser<BlockSize = U16>
     let second = C::new_from_slice(secondary).unwrap();
     let mut tweak = GenericArray::default();
     second.encrypt_block(&mut tweak);
-    for chunk in data.chunks_exact_mut(16) {
+    for chunk in data.as_chunks_mut::<16>().0 {
         let mut block = GenericArray::clone_from_slice(chunk);
         for (v, t) in block.iter_mut().zip(&tweak) {
             *v ^= t;

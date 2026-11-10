@@ -56,7 +56,7 @@ bash scripts/build-unix.sh --with-hashcat
 
 `xcode-select --install` 只在没有 Command Line Tools 时由用户执行。脚本构建当前 Mac
 的原生架构，Apple Silicon 不依赖 Rosetta，Intel 也独立构建。
-最终目录为 `dist/HashHelm-0.9.0-macos-arm64` 或 `...-macos-x64`。
+最终目录为 `dist/HashHelm-0.11.0-macos-arm64` 或 `...-macos-x64`。
 
 包内 Hashcat 8 的 Mach-O 最低系统版本为 macOS 15，应用包声明相同要求。
 macOS 包生成 DigiForensics ICNS 图标，并使用 ad-hoc 开发签名。
